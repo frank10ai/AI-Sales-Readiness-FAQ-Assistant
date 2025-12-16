@@ -181,70 +181,94 @@
     }
 
     // =========================================================================
-    // Live-Suche (Google Apps Script)
+    // Live-Suche (Google Apps Script) - JSONP für CORS-Umgehung
     // =========================================================================
 
-    async function handleLiveSearch(query) {
-        try {
-            const url = `${config.APPS_SCRIPT_URL}?q=${encodeURIComponent(query)}`;
+    function handleLiveSearch(query) {
+        return new Promise((resolve, reject) => {
+            // Eindeutiger Callback-Name
+            const callbackName = 'jsonpCallback_' + Date.now();
+            const timeoutDuration = 15000; // 15 Sekunden Timeout
 
-            const response = await fetch(url, {
-                method: 'GET',
-                redirect: 'follow'
-            });
-
-            const data = await response.json();
-
-            removeTypingIndicator();
-
-            if (data.success && data.results && data.results.length > 0) {
-                // Beste Ergebnis anzeigen
-                const best = data.results[0];
-                const formattedContent = formatSearchResult(best.content);
-
-                addMessage(
-                    formattedContent,
-                    'bot',
-                    best.source + (best.section ? ` - ${best.section}` : '')
-                );
-
-                // Weitere Ergebnisse als Hinweis
-                if (data.results.length > 1) {
-                    const otherSections = data.results.slice(1)
-                        .map(r => r.section || 'Weiterer Abschnitt')
-                        .join(', ');
-
-                    setTimeout(() => {
-                        addMessage(
-                            `<p><strong>Weitere relevante Abschnitte:</strong> ${escapeHtml(otherSections)}</p>
-                             <p>Fragen Sie gerne spezifischer nach.</p>`,
-                            'bot'
-                        );
-                    }, 500);
-                }
-            } else {
-                // Keine Ergebnisse - Fallback
+            // Timeout setzen
+            const timeout = setTimeout(() => {
+                cleanup();
+                console.warn('Live-Suche Timeout - Fallback auf lokale Datenbank');
+                removeTypingIndicator();
                 if (config.USE_LOCAL_FALLBACK && window.FAQ) {
-                    addMessage(
-                        '<p>Keine direkten Treffer in den Dokumenten. Suche in lokaler Wissensdatenbank...</p>',
-                        'bot'
-                    );
-                    setTimeout(() => handleLocalSearch(query), 300);
-                } else {
-                    addMessage(
-                        `<p>Zu Ihrer Anfrage "<em>${escapeHtml(query)}</em>" wurden keine passenden Informationen gefunden.</p>
-                         <p>Versuchen Sie es mit anderen Suchbegriffen oder prüfen Sie die Dokumente direkt.</p>`,
-                        'bot',
-                        null,
-                        'Keine Treffer in den konfigurierten Dokumenten'
-                    );
+                    handleLocalSearch(query);
                 }
+                resolve();
+            }, timeoutDuration);
+
+            // Cleanup-Funktion
+            function cleanup() {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                const script = document.getElementById(callbackName);
+                if (script) script.remove();
             }
 
-        } catch (error) {
-            console.error('Live-Suche Fehler:', error);
-            throw error;
-        }
+            // Callback-Funktion global registrieren
+            window[callbackName] = function(data) {
+                cleanup();
+                removeTypingIndicator();
+
+                if (data.success && data.results && data.results.length > 0) {
+                    const best = data.results[0];
+                    const formattedContent = formatSearchResult(best.content);
+
+                    addMessage(
+                        formattedContent,
+                        'bot',
+                        best.source + (best.section ? ` - ${best.section}` : '')
+                    );
+
+                    if (data.results.length > 1) {
+                        const otherSections = data.results.slice(1)
+                            .map(r => r.section || 'Weiterer Abschnitt')
+                            .join(', ');
+
+                        setTimeout(() => {
+                            addMessage(
+                                `<p><strong>Weitere relevante Abschnitte:</strong> ${escapeHtml(otherSections)}</p>
+                                 <p>Fragen Sie gerne spezifischer nach.</p>`,
+                                'bot'
+                            );
+                        }, 500);
+                    }
+                } else {
+                    if (config.USE_LOCAL_FALLBACK && window.FAQ) {
+                        addMessage(
+                            '<p>Keine direkten Treffer in den Dokumenten. Suche in lokaler Wissensdatenbank...</p>',
+                            'bot'
+                        );
+                        setTimeout(() => handleLocalSearch(query), 300);
+                    } else {
+                        addMessage(
+                            `<p>Zu Ihrer Anfrage wurden keine passenden Informationen gefunden.</p>`,
+                            'bot'
+                        );
+                    }
+                }
+                resolve();
+            };
+
+            // Script-Tag erstellen (JSONP)
+            const script = document.createElement('script');
+            script.id = callbackName;
+            script.src = `${config.APPS_SCRIPT_URL}?q=${encodeURIComponent(query)}&callback=${callbackName}`;
+            script.onerror = function() {
+                cleanup();
+                console.error('Live-Suche Fehler - Script konnte nicht geladen werden');
+                removeTypingIndicator();
+                if (config.USE_LOCAL_FALLBACK && window.FAQ) {
+                    handleLocalSearch(query);
+                }
+                resolve();
+            };
+            document.body.appendChild(script);
+        });
     }
 
     function formatSearchResult(content) {

@@ -53,33 +53,51 @@ const SECTION_MARKERS = [
 // ============================================================================
 
 function doGet(e) {
-  // CORS Headers setzen
-  const output = ContentService.createTextOutput();
-  output.setMimeType(ContentService.MimeType.JSON);
-
   try {
     const query = e.parameter.q || '';
+    const callback = e.parameter.callback || '';
+
+    let responseData;
 
     if (!query) {
-      return output.setContent(JSON.stringify({
+      responseData = {
         success: false,
         error: 'Keine Suchanfrage angegeben. Verwende ?q=deine+frage'
-      }));
+      };
+    } else {
+      const results = searchDocuments(query);
+      responseData = {
+        success: true,
+        query: query,
+        results: results
+      };
     }
 
-    const results = searchDocuments(query);
+    // JSONP-Antwort wenn Callback angegeben
+    if (callback) {
+      const jsonpResponse = callback + '(' + JSON.stringify(responseData) + ')';
+      return ContentService.createTextOutput(jsonpResponse)
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
 
-    return output.setContent(JSON.stringify({
-      success: true,
-      query: query,
-      results: results
-    }));
+    // Standard JSON-Antwort
+    return ContentService.createTextOutput(JSON.stringify(responseData))
+      .setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
-    return output.setContent(JSON.stringify({
+    const errorData = {
       success: false,
       error: error.toString()
-    }));
+    };
+
+    const callback = e.parameter.callback || '';
+    if (callback) {
+      return ContentService.createTextOutput(callback + '(' + JSON.stringify(errorData) + ')')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(errorData))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
