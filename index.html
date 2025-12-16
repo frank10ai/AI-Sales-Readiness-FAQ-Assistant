@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTM Sales Readiness Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    <span class="logo-text">GTM Assistant</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <h3 class="nav-section-title">Navigation</h3>
+                    <ul class="nav-list">
+                        <li class="nav-item active" data-view="chat">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            FAQ Assistant
+                        </li>
+                        <li class="nav-item" data-view="checklist">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                            Evaluations-Checkliste
+                        </li>
+                        <li class="nav-item" data-view="documents">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                            </svg>
+                            Dokumente
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3 class="nav-section-title">Schnellzugriff</h3>
+                    <ul class="nav-list">
+                        <li class="nav-item" data-topic="playbook">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                            </svg>
+                            Sales Playbook
+                        </li>
+                        <li class="nav-item" data-topic="pricing">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23"/>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                            Preisgestaltung
+                        </li>
+                        <li class="nav-item" data-topic="objections">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            Einwandbehandlung
+                        </li>
+                        <li class="nav-item" data-topic="competitors">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            Wettbewerb
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="#" id="google-drive-link" class="drive-link" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Google Drive Ordner
+                </a>
+                <p class="version-info">Version 1.0</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Chat View -->
+            <div id="chat-view" class="view active">
+                <header class="content-header">
+                    <div class="header-info">
+                        <h1>GTM Sales Readiness Assistant</h1>
+                        <p class="header-subtitle">Ihr Wissenszentrum für aktuelle Vertriebsinformationen</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" id="clear-chat">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                            Neuer Chat
+                        </button>
+                    </div>
+                </header>
+
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <!-- Welcome Message -->
+                        <div class="message bot-message">
+                            <div class="message-avatar">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                    <path d="M2 17l10 5 10-5"/>
+                                    <path d="M2 12l10 5 10-5"/>
+                                </svg>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-text">
+                                    <p><strong>Willkommen beim GTM Sales Readiness Assistant!</strong></p>
+                                    <p>Ich liefere Ihnen aktuelle Informationen zu:</p>
+                                    <ul>
+                                        <li>Sales Playbook & Prozesse</li>
+                                        <li>Preisgestaltung & Rabatte</li>
+                                        <li>Einwandbehandlung</li>
+                                        <li>Wettbewerbsanalysen</li>
+                                        <li>Produktinformationen</li>
+                                    </ul>
+                                    <p>Stellen Sie Ihre Frage oder wählen Sie ein Thema aus der Seitenleiste.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-input-container">
+                        <div class="suggestions" id="suggestions">
+                            <button class="suggestion-chip" data-query="Was sind unsere aktuellen Rabattrichtlinien?">Rabattrichtlinien</button>
+                            <button class="suggestion-chip" data-query="Wie reagiere ich auf den Einwand 'zu teuer'?">Einwand: Zu teuer</button>
+                            <button class="suggestion-chip" data-query="Was unterscheidet uns von Wettbewerber X?">Wettbewerbsvorteile</button>
+                            <button class="suggestion-chip" data-query="Wie ist der aktuelle Sales-Prozess?">Sales-Prozess</button>
+                        </div>
+                        <form class="chat-form" id="chat-form">
+                            <div class="input-wrapper">
+                                <input
+                                    type="text"
+                                    id="chat-input"
+                                    class="chat-input"
+                                    placeholder="Stellen Sie Ihre Frage zu Sales & Marketing..."
+                                    autocomplete="off"
+                                >
+                                <button type="submit" class="send-button" id="send-button">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="22" y1="2" x2="11" y2="13"/>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checklist View -->
+            <div id="checklist-view" class="view">
+                <header class="content-header">
+                    <div class="header-info">
+                        <h1>Evaluations-Checkliste</h1>
+                        <p class="header-subtitle">Systematische Bewertung Ihrer Sales Readiness</p>
+                    </div>
+                </header>
+
+                <div class="checklist-container">
+                    <div class="checklist-intro card">
+                        <h2>Sales Readiness Evaluation</h2>
+                        <p>Nutzen Sie diese Checkliste, um Ihre Vertriebsbereitschaft systematisch zu bewerten. Jeder Punkt hilft Ihnen, Stärken und Verbesserungspotenziale zu identifizieren.</p>
+                    </div>
+
+                    <div class="checklist-grid">
+                        <div class="checklist-card card">
+                            <div class="checklist-header">
+                                <span class="checklist-number">1</span>
+                                <h3>Produktkenntnis verifizieren</h3>
+                            </div>
+                            <p>Stellen Sie sicher, dass alle Features, Vorteile und Use Cases bekannt sind.</p>
+                            <div class="checklist-status">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" data-step="1">
+                                    <span class="checkmark"></span>
+                                    <span>Abgeschlossen</span>
+                                </label>
+                            </div>
+                            <div class="checklist-notes">
+                                <textarea placeholder="Notizen oder Annahmen..." data-notes="1"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="checklist-card card">
+                            <div class="checklist-header">
+                                <span class="checklist-number">2</span>
+                                <h3>Zielkundenprofil definieren</h3>
+                            </div>
+                            <p>ICP (Ideal Customer Profile) und Buyer Personas dokumentieren.</p>
+                            <div class="checklist-status">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" data-step="2">
+                                    <span class="checkmark"></span>
+                                    <span>Abgeschlossen</span>
+                                </label>
+                            </div>
+                            <div class="checklist-notes">
+                                <textarea placeholder="Notizen oder Annahmen..." data-notes="2"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="checklist-card card">
+                            <div class="checklist-header">
+                                <span class="checklist-number">3</span>
+                                <h3>Wettbewerbsanalyse aktualisieren</h3>
+                            </div>
+                            <p>Aktuelle Positionierung und Differenzierungsmerkmale prüfen.</p>
+                            <div class="checklist-status">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" data-step="3">
+                                    <span class="checkmark"></span>
+                                    <span>Abgeschlossen</span>
+                                </label>
+                            </div>
+                            <div class="checklist-notes">
+                                <textarea placeholder="Notizen oder Annahmen..." data-notes="3"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="checklist-card card">
+                            <div class="checklist-header">
+                                <span class="checklist-number">4</span>
+                                <h3>Einwandbehandlung trainieren</h3>
+                            </div>
+                            <p>Häufige Einwände und effektive Antworten verinnerlichen.</p>
+                            <div class="checklist-status">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" data-step="4">
+                                    <span class="checkmark"></span>
+                                    <span>Abgeschlossen</span>
+                                </label>
+                            </div>
+                            <div class="checklist-notes">
+                                <textarea placeholder="Notizen oder Annahmen..." data-notes="4"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="checklist-card card">
+                            <div class="checklist-header">
+                                <span class="checklist-number">5</span>
+                                <h3>Preismodell verstehen</h3>
+                            </div>
+                            <p>Preisstruktur, Rabattrahmen und ROI-Argumentation beherrschen.</p>
+                            <div class="checklist-status">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" data-step="5">
+                                    <span class="checkmark"></span>
+                                    <span>Abgeschlossen</span>
+                                </label>
+                            </div>
+                            <div class="checklist-notes">
+                                <textarea placeholder="Notizen oder Annahmen..." data-notes="5"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="checklist-card card">
+                            <div class="checklist-header">
+                                <span class="checklist-number">6</span>
+                                <h3>Sales-Prozess beherrschen</h3>
+                            </div>
+                            <p>Alle Phasen des Sales-Cycles und nächste Schritte kennen.</p>
+                            <div class="checklist-status">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" data-step="6">
+                                    <span class="checkmark"></span>
+                                    <span>Abgeschlossen</span>
+                                </label>
+                            </div>
+                            <div class="checklist-notes">
+                                <textarea placeholder="Notizen oder Annahmen..." data-notes="6"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="checklist-card card">
+                            <div class="checklist-header">
+                                <span class="checklist-number">7</span>
+                                <h3>Materialien bereithalten</h3>
+                            </div>
+                            <p>Aktuelle Präsentationen, Case Studies und Demos verfügbar.</p>
+                            <div class="checklist-status">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" data-step="7">
+                                    <span class="checkmark"></span>
+                                    <span>Abgeschlossen</span>
+                                </label>
+                            </div>
+                            <div class="checklist-notes">
+                                <textarea placeholder="Notizen oder Annahmen..." data-notes="7"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="evaluation-results card" id="evaluation-results">
+                        <h2>Evaluationsergebnis</h2>
+                        <div class="results-summary">
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progress-fill"></div>
+                                </div>
+                                <span class="progress-text" id="progress-text">0 von 7 abgeschlossen</span>
+                            </div>
+                            <div class="readiness-score" id="readiness-score">
+                                <span class="score-value">0%</span>
+                                <span class="score-label">Sales Readiness</span>
+                            </div>
+                        </div>
+                        <div class="assumptions-section">
+                            <h3>Key Assumptions / Notes</h3>
+                            <div id="assumptions-list" class="assumptions-list">
+                                <p class="no-assumptions">Keine Anmerkungen vorhanden. Fügen Sie Notizen zu den Checklisten-Punkten hinzu.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents View -->
+            <div id="documents-view" class="view">
+                <header class="content-header">
+                    <div class="header-info">
+                        <h1>Sales Dokumente</h1>
+                        <p class="header-subtitle">Zugriff auf alle relevanten Vertriebsunterlagen</p>
+                    </div>
+                </header>
+
+                <div class="documents-container">
+                    <div class="drive-banner card">
+                        <div class="drive-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="drive-info">
+                            <h2>Google Drive Sales Ordner</h2>
+                            <p>Alle aktuellen Sales-Dokumente, Playbooks und Marketing-Materialien sind zentral in Google Drive gespeichert.</p>
+                            <a href="#" id="drive-folder-link" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                                Ordner öffnen
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                    <polyline points="15 3 21 3 21 9"/>
+                                    <line x1="10" y1="14" x2="21" y2="3"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="documents-grid">
+                        <div class="document-card card">
+                            <div class="doc-icon playbook">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                </svg>
+                            </div>
+                            <h3>Sales Playbook</h3>
+                            <p>Vollständiger Leitfaden für den Vertriebsprozess</p>
+                            <span class="doc-meta">Letzte Aktualisierung: Q4 2024</span>
+                        </div>
+
+                        <div class="document-card card">
+                            <div class="doc-icon pricing">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="1" x2="12" y2="23"/>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                            </div>
+                            <h3>Preisliste</h3>
+                            <p>Aktuelle Preise und Rabattstrukturen</p>
+                            <span class="doc-meta">Gültig ab: Januar 2025</span>
+                        </div>
+
+                        <div class="document-card card">
+                            <div class="doc-icon battlecard">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="3" y1="9" x2="21" y2="9"/>
+                                    <line x1="9" y1="21" x2="9" y2="9"/>
+                                </svg>
+                            </div>
+                            <h3>Battlecards</h3>
+                            <p>Wettbewerbsvergleiche und Positionierung</p>
+                            <span class="doc-meta">Letzte Aktualisierung: Q4 2024</span>
+                        </div>
+
+                        <div class="document-card card">
+                            <div class="doc-icon casestudy">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                </svg>
+                            </div>
+                            <h3>Case Studies</h3>
+                            <p>Erfolgsgeschichten und Referenzen</p>
+                            <span class="doc-meta">12 aktive Case Studies</span>
+                        </div>
+
+                        <div class="document-card card">
+                            <div class="doc-icon presentation">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                    <line x1="8" y1="21" x2="16" y2="21"/>
+                                    <line x1="12" y1="17" x2="12" y2="21"/>
+                                </svg>
+                            </div>
+                            <h3>Präsentationen</h3>
+                            <p>Pitch Decks und Produktpräsentationen</p>
+                            <span class="doc-meta">5 Templates verfügbar</span>
+                        </div>
+
+                        <div class="document-card card">
+                            <div class="doc-icon objections">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                            </div>
+                            <h3>Einwandbehandlung</h3>
+                            <p>Skripte für häufige Kundeneinwände</p>
+                            <span class="doc-meta">25+ Einwände dokumentiert</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section card">
+                        <h3>Google Drive Konfiguration</h3>
+                        <p>Geben Sie die URL Ihres Sales-Ordners ein, um schnellen Zugriff zu ermöglichen.</p>
+                        <div class="config-form">
+                            <input
+                                type="url"
+                                id="drive-url-input"
+                                class="config-input"
+                                placeholder="https://drive.google.com/drive/folders/..."
+                            >
+                            <button class="btn btn-primary" id="save-drive-url">Speichern</button>
+                        </div>
+                        <p class="config-note">Diese URL wird lokal in Ihrem Browser gespeichert.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/faq-data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
