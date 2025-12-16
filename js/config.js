@@ -19,7 +19,7 @@ const CONFIG = {
     // 5. Zugriff: Jeder
     // 6. URL hier einfügen:
 
-    APPS_SCRIPT_URL: '',  // <-- HIER DEINE URL EINTRAGEN
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbz_G9l08HFQfoxoEnfkwJzRu6soclXXuqwlnGc6mzCyqfiYdiHJ_kbJ8uDefImoDDdl/exec',
 
     // =========================================================================
     // FALLBACK MODUS
