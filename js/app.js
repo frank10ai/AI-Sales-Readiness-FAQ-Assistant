@@ -1,19 +1,28 @@
 /**
- * GTM Sales Readiness Assistant - Main Application
+ * DeepL Sales Readiness Assistant - Main Application
+ *
+ * Unterstützt zwei Modi:
+ * 1. Live-Suche via Google Apps Script (wenn konfiguriert)
+ * 2. Lokale FAQ-Datenbank als Fallback
  */
 
 (function() {
     'use strict';
 
-    // Configuration
-    const CONFIG = {
-        googleDriveUrl: localStorage.getItem('gtm-drive-url') || '',
-        typingDelay: 800,
-        storageKeys: {
-            driveUrl: 'gtm-drive-url',
-            checklist: 'gtm-checklist-state',
-            checklistNotes: 'gtm-checklist-notes'
-        }
+    // Konfiguration laden
+    const config = window.APP_CONFIG || {
+        APPS_SCRIPT_URL: '',
+        USE_LOCAL_FALLBACK: true,
+        TYPING_DELAY: 800,
+        MAX_RESULTS: 3,
+        GOOGLE_DRIVE_FOLDER: ''
+    };
+
+    // Storage Keys
+    const STORAGE_KEYS = {
+        driveUrl: 'gtm-drive-url',
+        checklist: 'gtm-checklist-state',
+        checklistNotes: 'gtm-checklist-notes'
     };
 
     // DOM Elements
@@ -51,7 +60,6 @@
     // =========================================================================
 
     function initNavigation() {
-        // View navigation
         elements.navItems.forEach(item => {
             item.addEventListener('click', () => {
                 const viewId = item.dataset.view;
@@ -60,7 +68,6 @@
             });
         });
 
-        // Topic quick access
         elements.topicItems.forEach(item => {
             item.addEventListener('click', () => {
                 const topic = item.dataset.topic;
@@ -108,7 +115,6 @@
         elements.chatForm.addEventListener('submit', handleChatSubmit);
         elements.clearChat.addEventListener('click', clearChat);
 
-        // Suggestion chips
         document.querySelectorAll('.suggestion-chip').forEach(chip => {
             chip.addEventListener('click', () => {
                 elements.chatInput.value = chip.dataset.query;
@@ -116,35 +122,209 @@
             });
         });
 
-        // Enter key handling
         elements.chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleChatSubmit(e);
             }
         });
+
+        // Status-Indikator für Suchmodus
+        showSearchModeIndicator();
     }
 
-    function handleChatSubmit(e) {
+    function showSearchModeIndicator() {
+        const mode = config.APPS_SCRIPT_URL ? 'Live-Suche' : 'Lokale Datenbank';
+        console.log(`[DeepL Assistant] Suchmodus: ${mode}`);
+    }
+
+    async function handleChatSubmit(e) {
         e.preventDefault();
 
         const query = elements.chatInput.value.trim();
         if (!query) return;
 
-        // Add user message
+        // User-Nachricht anzeigen
         addMessage(query, 'user');
         elements.chatInput.value = '';
 
-        // Show typing indicator
+        // Typing-Indikator
         showTypingIndicator();
 
-        // Search and respond
+        try {
+            // Prüfen ob Live-Suche konfiguriert ist
+            if (config.APPS_SCRIPT_URL) {
+                await handleLiveSearch(query);
+            } else if (config.USE_LOCAL_FALLBACK && window.FAQ) {
+                handleLocalSearch(query);
+            } else {
+                removeTypingIndicator();
+                addMessage(
+                    '<p>Die Suche ist nicht konfiguriert. Bitte konfigurieren Sie die Google Apps Script URL in der config.js Datei.</p>',
+                    'bot',
+                    null,
+                    'Keine Suchquelle verfügbar'
+                );
+            }
+        } catch (error) {
+            removeTypingIndicator();
+            addMessage(
+                `<p>Ein Fehler ist aufgetreten: ${escapeHtml(error.message)}</p>
+                 <p>Fallback auf lokale Datenbank...</p>`,
+                'bot'
+            );
+            // Fallback auf lokale Suche
+            if (config.USE_LOCAL_FALLBACK && window.FAQ) {
+                handleLocalSearch(query);
+            }
+        }
+    }
+
+    // =========================================================================
+    // Live-Suche (Google Apps Script)
+    // =========================================================================
+
+    async function handleLiveSearch(query) {
+        try {
+            const url = `${config.APPS_SCRIPT_URL}?q=${encodeURIComponent(query)}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                redirect: 'follow'
+            });
+
+            const data = await response.json();
+
+            removeTypingIndicator();
+
+            if (data.success && data.results && data.results.length > 0) {
+                // Beste Ergebnis anzeigen
+                const best = data.results[0];
+                const formattedContent = formatSearchResult(best.content);
+
+                addMessage(
+                    formattedContent,
+                    'bot',
+                    best.source + (best.section ? ` - ${best.section}` : '')
+                );
+
+                // Weitere Ergebnisse als Hinweis
+                if (data.results.length > 1) {
+                    const otherSections = data.results.slice(1)
+                        .map(r => r.section || 'Weiterer Abschnitt')
+                        .join(', ');
+
+                    setTimeout(() => {
+                        addMessage(
+                            `<p><strong>Weitere relevante Abschnitte:</strong> ${escapeHtml(otherSections)}</p>
+                             <p>Fragen Sie gerne spezifischer nach.</p>`,
+                            'bot'
+                        );
+                    }, 500);
+                }
+            } else {
+                // Keine Ergebnisse - Fallback
+                if (config.USE_LOCAL_FALLBACK && window.FAQ) {
+                    addMessage(
+                        '<p>Keine direkten Treffer in den Dokumenten. Suche in lokaler Wissensdatenbank...</p>',
+                        'bot'
+                    );
+                    setTimeout(() => handleLocalSearch(query), 300);
+                } else {
+                    addMessage(
+                        `<p>Zu Ihrer Anfrage "<em>${escapeHtml(query)}</em>" wurden keine passenden Informationen gefunden.</p>
+                         <p>Versuchen Sie es mit anderen Suchbegriffen oder prüfen Sie die Dokumente direkt.</p>`,
+                        'bot',
+                        null,
+                        'Keine Treffer in den konfigurierten Dokumenten'
+                    );
+                }
+            }
+
+        } catch (error) {
+            console.error('Live-Suche Fehler:', error);
+            throw error;
+        }
+    }
+
+    function formatSearchResult(content) {
+        // Text in HTML formatieren
+        let html = content
+            // Aufzählungen erkennen
+            .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+            // Überschriften erkennen
+            .replace(/^(\d+\.\s+.+)$/gm, '<p><strong>$1</strong></p>')
+            // Zeilenumbrüche
+            .replace(/\n\n+/g, '</p><p>')
+            .replace(/\n/g, '<br>');
+
+        // Listen wrappen
+        if (html.includes('<li>')) {
+            html = html.replace(/(<li>.*?<\/li>)+/gs, '<ul>$&</ul>');
+        }
+
+        // In Absätze wrappen wenn nicht bereits
+        if (!html.startsWith('<p>') && !html.startsWith('<ul>')) {
+            html = '<p>' + html + '</p>';
+        }
+
+        return html;
+    }
+
+    // =========================================================================
+    // Lokale Suche (Fallback)
+    // =========================================================================
+
+    function handleLocalSearch(query) {
         setTimeout(() => {
             removeTypingIndicator();
             const results = window.FAQ.search(query);
             respondToQuery(query, results);
-        }, CONFIG.typingDelay);
+        }, config.TYPING_DELAY);
     }
+
+    function respondToQuery(query, results) {
+        if (results.length === 0) {
+            addMessage(
+                `<p>Leider konnte ich keine passende Information zu Ihrer Anfrage finden.</p>
+                <p><strong>Vorschläge:</strong></p>
+                <ul>
+                    <li>Versuchen Sie andere Suchbegriffe</li>
+                    <li>Nutzen Sie die Schnellzugriff-Themen in der Seitenleiste</li>
+                    <li>Prüfen Sie die Dokumente im Google Drive Ordner</li>
+                </ul>`,
+                'bot',
+                null,
+                'Keine exakte Übereinstimmung gefunden. Die Wissensdatenbank wird kontinuierlich erweitert.'
+            );
+            return;
+        }
+
+        const bestMatch = results[0];
+        addMessage(
+            bestMatch.answer,
+            'bot',
+            bestMatch.source,
+            bestMatch.assumptions || null
+        );
+
+        if (results.length > 1) {
+            setTimeout(() => {
+                addMessage(
+                    `<p><strong>Verwandte Themen gefunden (${results.length - 1}):</strong></p>
+                    <ul>
+                        ${results.slice(1, 4).map(r => `<li>${r.question}</li>`).join('')}
+                    </ul>
+                    <p>Fragen Sie gerne nach einem dieser Themen.</p>`,
+                    'bot'
+                );
+            }, 500);
+        }
+    }
+
+    // =========================================================================
+    // Chat UI Helpers
+    // =========================================================================
 
     function addMessage(content, type, source = null, assumptions = null) {
         const messageDiv = document.createElement('div');
@@ -175,7 +355,7 @@
             if (assumptions) {
                 assumptionsHtml = `
                     <div class="message-assumptions">
-                        <strong>Key Assumptions/Notes:</strong> ${escapeHtml(assumptions)}
+                        <strong>Hinweis:</strong> ${escapeHtml(assumptions)}
                     </div>
                 `;
             }
@@ -198,47 +378,6 @@
 
         elements.chatMessages.appendChild(messageDiv);
         scrollToBottom();
-    }
-
-    function respondToQuery(query, results) {
-        if (results.length === 0) {
-            addMessage(
-                `<p>Leider konnte ich keine passende Information zu Ihrer Anfrage finden.</p>
-                <p><strong>Vorschläge:</strong></p>
-                <ul>
-                    <li>Versuchen Sie andere Suchbegriffe</li>
-                    <li>Nutzen Sie die Schnellzugriff-Themen in der Seitenleiste</li>
-                    <li>Prüfen Sie die Dokumente im Google Drive Ordner</li>
-                </ul>`,
-                'bot',
-                null,
-                'Keine exakte Übereinstimmung gefunden. Die Wissensdatenbank wird kontinuierlich erweitert.'
-            );
-            return;
-        }
-
-        // Return the best match
-        const bestMatch = results[0];
-        addMessage(
-            bestMatch.answer,
-            'bot',
-            bestMatch.source,
-            bestMatch.assumptions || null
-        );
-
-        // If there are more results, hint at them
-        if (results.length > 1) {
-            setTimeout(() => {
-                addMessage(
-                    `<p><strong>Verwandte Themen gefunden (${results.length - 1}):</strong></p>
-                    <ul>
-                        ${results.slice(1, 4).map(r => `<li>${r.question}</li>`).join('')}
-                    </ul>
-                    <p>Fragen Sie gerne nach einem dieser Themen.</p>`,
-                    'bot'
-                );
-            }, 500);
-        }
     }
 
     function showTypingIndicator() {
@@ -274,7 +413,6 @@
     }
 
     function clearChat() {
-        // Keep only the welcome message
         const welcomeMessage = elements.chatMessages.querySelector('.message');
         elements.chatMessages.innerHTML = '';
         if (welcomeMessage) {
@@ -292,10 +430,8 @@
     // =========================================================================
 
     function initChecklist() {
-        // Load saved state
         loadChecklistState();
 
-        // Checkbox change handlers
         elements.checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', () => {
                 saveChecklistState();
@@ -303,7 +439,6 @@
             });
         });
 
-        // Note field handlers
         elements.noteFields.forEach(field => {
             field.addEventListener('input', debounce(() => {
                 saveChecklistNotes();
@@ -311,14 +446,13 @@
             }, 500));
         });
 
-        // Initial progress update
         updateProgress();
         updateAssumptions();
     }
 
     function loadChecklistState() {
-        const savedState = localStorage.getItem(CONFIG.storageKeys.checklist);
-        const savedNotes = localStorage.getItem(CONFIG.storageKeys.checklistNotes);
+        const savedState = localStorage.getItem(STORAGE_KEYS.checklist);
+        const savedNotes = localStorage.getItem(STORAGE_KEYS.checklistNotes);
 
         if (savedState) {
             const state = JSON.parse(savedState);
@@ -346,7 +480,7 @@
         elements.checkboxes.forEach(checkbox => {
             state[checkbox.dataset.step] = checkbox.checked;
         });
-        localStorage.setItem(CONFIG.storageKeys.checklist, JSON.stringify(state));
+        localStorage.setItem(STORAGE_KEYS.checklist, JSON.stringify(state));
     }
 
     function saveChecklistNotes() {
@@ -356,7 +490,7 @@
                 notes[field.dataset.notes] = field.value.trim();
             }
         });
-        localStorage.setItem(CONFIG.storageKeys.checklistNotes, JSON.stringify(notes));
+        localStorage.setItem(STORAGE_KEYS.checklistNotes, JSON.stringify(notes));
     }
 
     function updateProgress() {
@@ -370,18 +504,17 @@
         const scoreValue = elements.readinessScore.querySelector('.score-value');
         scoreValue.textContent = `${percentage}%`;
 
-        // Update color based on score
         if (percentage >= 80) {
-            scoreValue.style.color = '#059669'; // Green
+            scoreValue.style.color = '#059669';
         } else if (percentage >= 50) {
-            scoreValue.style.color = '#d97706'; // Gold
+            scoreValue.style.color = '#d97706';
         } else {
-            scoreValue.style.color = '#1e3a8a'; // Navy
+            scoreValue.style.color = '#1e3a8a';
         }
     }
 
     function updateAssumptions() {
-        const savedNotes = localStorage.getItem(CONFIG.storageKeys.checklistNotes);
+        const savedNotes = localStorage.getItem(STORAGE_KEYS.checklistNotes);
         const checklistLabels = {
             '1': 'Produktkenntnis',
             '2': 'Zielkundenprofil',
@@ -393,7 +526,7 @@
         };
 
         if (!savedNotes) {
-            elements.assumptionsList.innerHTML = '<p class="no-assumptions">Keine Anmerkungen vorhanden. Fügen Sie Notizen zu den Checklisten-Punkten hinzu.</p>';
+            elements.assumptionsList.innerHTML = '<p class="no-assumptions">Keine Anmerkungen vorhanden.</p>';
             return;
         }
 
@@ -401,11 +534,10 @@
         const noteEntries = Object.entries(notes);
 
         if (noteEntries.length === 0) {
-            elements.assumptionsList.innerHTML = '<p class="no-assumptions">Keine Anmerkungen vorhanden. Fügen Sie Notizen zu den Checklisten-Punkten hinzu.</p>';
+            elements.assumptionsList.innerHTML = '<p class="no-assumptions">Keine Anmerkungen vorhanden.</p>';
             return;
         }
 
-        // Check for incomplete items
         const incompleteItems = [];
         elements.checkboxes.forEach(checkbox => {
             if (!checkbox.checked) {
@@ -435,29 +567,31 @@
     // =========================================================================
 
     function initDriveIntegration() {
-        // Load saved URL
-        if (CONFIG.googleDriveUrl) {
-            elements.driveUrlInput.value = CONFIG.googleDriveUrl;
-            updateDriveLinks(CONFIG.googleDriveUrl);
+        // Lade gespeicherte URL oder verwende Config-Default
+        const savedUrl = localStorage.getItem(STORAGE_KEYS.driveUrl);
+        const driveUrl = savedUrl || config.GOOGLE_DRIVE_FOLDER || '';
+
+        if (driveUrl && elements.driveUrlInput) {
+            elements.driveUrlInput.value = driveUrl;
+            updateDriveLinks(driveUrl);
         }
 
-        // Save URL handler
-        elements.saveDriveUrl.addEventListener('click', () => {
-            const url = elements.driveUrlInput.value.trim();
-            if (url && isValidDriveUrl(url)) {
-                localStorage.setItem(CONFIG.storageKeys.driveUrl, url);
-                CONFIG.googleDriveUrl = url;
-                updateDriveLinks(url);
-                showNotification('Google Drive URL gespeichert');
-            } else if (!url) {
-                localStorage.removeItem(CONFIG.storageKeys.driveUrl);
-                CONFIG.googleDriveUrl = '';
-                updateDriveLinks('');
-                showNotification('Google Drive URL entfernt');
-            } else {
-                showNotification('Bitte geben Sie eine gültige Google Drive URL ein', 'error');
-            }
-        });
+        if (elements.saveDriveUrl) {
+            elements.saveDriveUrl.addEventListener('click', () => {
+                const url = elements.driveUrlInput.value.trim();
+                if (url && isValidDriveUrl(url)) {
+                    localStorage.setItem(STORAGE_KEYS.driveUrl, url);
+                    updateDriveLinks(url);
+                    showNotification('Google Drive URL gespeichert');
+                } else if (!url) {
+                    localStorage.removeItem(STORAGE_KEYS.driveUrl);
+                    updateDriveLinks('');
+                    showNotification('Google Drive URL entfernt');
+                } else {
+                    showNotification('Bitte geben Sie eine gültige Google Drive URL ein', 'error');
+                }
+            });
+        }
     }
 
     function isValidDriveUrl(url) {
@@ -465,34 +599,15 @@
     }
 
     function updateDriveLinks(url) {
-        const defaultUrl = '#';
-        const targetUrl = url || defaultUrl;
+        const targetUrl = url || '#';
 
         if (elements.driveFolderLink) {
             elements.driveFolderLink.href = targetUrl;
-            if (!url) {
-                elements.driveFolderLink.addEventListener('click', handleEmptyDriveLink);
-            } else {
-                elements.driveFolderLink.removeEventListener('click', handleEmptyDriveLink);
-            }
         }
 
         if (elements.googleDriveLink) {
             elements.googleDriveLink.href = targetUrl;
-            if (!url) {
-                elements.googleDriveLink.addEventListener('click', handleEmptyDriveLink);
-            } else {
-                elements.googleDriveLink.removeEventListener('click', handleEmptyDriveLink);
-            }
         }
-    }
-
-    function handleEmptyDriveLink(e) {
-        e.preventDefault();
-        switchView('documents');
-        updateActiveNav(document.querySelector('[data-view="documents"]'), 'data-view');
-        elements.driveUrlInput.focus();
-        showNotification('Bitte konfigurieren Sie zuerst die Google Drive URL', 'warning');
     }
 
     // =========================================================================
@@ -518,7 +633,6 @@
     }
 
     function showNotification(message, type = 'success') {
-        // Create notification element
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.style.cssText = `
@@ -537,20 +651,13 @@
         `;
         notification.textContent = message;
 
-        // Add animation keyframes if not exists
         if (!document.getElementById('notification-styles')) {
             const style = document.createElement('style');
             style.id = 'notification-styles';
             style.textContent = `
                 @keyframes slideIn {
-                    from {
-                        transform: translateY(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateY(0);
-                        opacity: 1;
-                    }
+                    from { transform: translateY(100%); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
                 }
             `;
             document.head.appendChild(style);
@@ -558,7 +665,6 @@
 
         document.body.appendChild(notification);
 
-        // Remove after 3 seconds
         setTimeout(() => {
             notification.style.animation = 'slideIn 0.3s ease reverse';
             setTimeout(() => notification.remove(), 300);
@@ -575,11 +681,9 @@
         initChecklist();
         initDriveIntegration();
 
-        // Focus chat input on load
         elements.chatInput.focus();
     }
 
-    // Run when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
