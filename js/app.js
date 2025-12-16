@@ -87,10 +87,10 @@
 
     function handleTopicClick(topic) {
         const topicQueries = {
-            playbook: 'Wie ist der aktuelle Sales-Prozess?',
-            pricing: 'Was sind unsere aktuellen Rabattrichtlinien?',
-            objections: 'Welche Einwandbehandlungen gibt es?',
-            competitors: 'Was sind unsere wichtigsten Wettbewerbsvorteile?'
+            playbook: 'Was bietet DeepL als Produkt?',
+            pricing: 'Was sind die aktuellen DeepL Preise?',
+            objections: 'Wie reagiere ich auf den Einwand zu teuer?',
+            competitors: 'Wie unterscheidet sich DeepL von Google Translate?'
         };
 
         const query = topicQueries[topic];
